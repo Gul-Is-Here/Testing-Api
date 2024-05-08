@@ -5,12 +5,25 @@ import 'package:testing_api/controller/networking_controller.dart';
 import 'package:testing_api/model/course_model.dart';
 import 'package:testing_api/screens/home_screen.dart';
 
-class AddUserData extends StatelessWidget {
-  const AddUserData({super.key});
+class EditUserDetails extends StatelessWidget {
+  final Course? course;
+
+  const EditUserDetails({Key? key, this.course}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     var controller = Get.put(NetworkingController());
+
+    // Populate form fields with course data if available
+    if (course != null) {
+      controller.nameController.text = course!.name;
+      controller.designatedController.text = course!.course;
+      controller.emailController.text = course!.otherProperties.email;
+      controller.jobController.text = course!.timeSlot;
+      controller.locationController.text = course!.otherProperties.location;
+      controller.ageController.text = course!.otherProperties.age.toString();
+    }
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.deepPurple,
@@ -49,7 +62,7 @@ class AddUserData extends StatelessWidget {
                     child: TextFormField(
                       validator: (value) {
                         if (value!.isEmpty || value.length < 3) {
-                          return 'Enter a valid Degination';
+                          return 'Enter a valid Designation';
                         } else {
                           return null;
                         }
@@ -73,7 +86,7 @@ class AddUserData extends StatelessWidget {
                 controller: controller.emailController,
                 validator: (value) {
                   if (value!.isEmpty || value.length < 10) {
-                    return 'Enter valid email';
+                    return 'Enter a valid email';
                   } else {
                     return null;
                   }
@@ -155,56 +168,58 @@ class AddUserData extends StatelessWidget {
               ),
             ),
             SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              height: 70,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Obx(
-                  () => ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      shape: BeveledRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    onPressed: () async {
-                      if (controller.formkey.currentState!.validate()) {
-                        controller.isLoading.value = true;
-                        Course newCourse = Course(
-                          otherProperties: OtherProperties(
-                            age: int.parse(controller.ageController.text),
-                            email: controller.emailController.text.trim(),
-                            location: controller.locationController.text.trim(),
-                          ),
-                          id: '',
-                          name: controller.nameController.text.trim(),
-                          course: controller.designatedController.text.trim(),
-                          timeSlot: controller.jobController.text.trim(),
-                          v: 0,
-                        );
-                        await controller.postCourse(newCourse);
-                        controller.isLoading.value = false;
-                        Duration threSecond = Duration(seconds: 2);
+            // Update button...
 
-                        Future.delayed(threSecond, () {
-                          Navigator.of(context).pushReplacement(
-                              MaterialPageRoute(builder: (context) {
-                            return HomeScreen();
-                          }));
-                        });
-                      }
-                    },
-                    child: controller.isLoading.value
-                        ? CircularProgressIndicator(
-                            color: Colors.white,
-                          )
-                        : Text(
-                            'Save',
-                            style: TextStyle(color: Colors.white),
-                          ),
+            Obx(
+              () => ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  shape: BeveledRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
+                onPressed: () async {
+                  if (controller.formkey.currentState!.validate()) {
+                    // Set loading state to true
+                    controller.isLoading.value = true;
+
+                    try {
+                      // Create a new course object with updated data
+                      Course newCourse = Course(
+                        otherProperties: OtherProperties(
+                          age: int.parse(controller.ageController.text),
+                          email: controller.emailController.text.trim(),
+                          location: controller.locationController.text.trim(),
+                        ),
+                        id: '',
+                        name: controller.nameController.text.trim(),
+                        course: controller.designatedController.text.trim(),
+                        timeSlot: controller.jobController.text.trim(),
+                        v: 0,
+                      );
+
+                      // Update the course
+                      await controller.updateCourse(newCourse, newCourse.id);
+
+                      // If update is successful, navigate back to previous screen
+                      Navigator.pop(context);
+                    } catch (e) {
+                      // Handle errors if update fails
+                      Get.snackbar('Error', 'Failed to update course');
+                    } finally {
+                      // Set loading state to false after update completes
+                      controller.isLoading.value = false;
+                    }
+                  }
+                },
+                child: controller.isLoading.value
+                    ? CircularProgressIndicator(
+                        color: Colors.white,
+                      )
+                    : Text(
+                        'Update',
+                        style: TextStyle(color: Colors.white),
+                      ),
               ),
             ),
           ],
